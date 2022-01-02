@@ -5,7 +5,7 @@ grammar Calculette;
 //start à remplacer par calcul
 start returns [ String code ]
 @init{ $code = new String(); } // On initialise $code, pour ensuite l’utiliser comme accumulateur
-@after{ System.out.println($code); } // on affiche le code MVaP stocké dans code
+@after{ System.out.println($code); } // on affiche le code MVaP stocké dans code 
 : (decl { $code += $decl.code; })*
 NEWLINE*
 (instruction { $code += $instruction.code; })*
