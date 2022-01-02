@@ -85,6 +85,7 @@ expr_arithmetique returns [String code]
  | aexp=expr_arithmetique '<' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "INF" + '\n';}
  | aexp=expr_arithmetique '<=' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "INFEQ" + '\n';}
  | aexp=expr_arithmetique '<>' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "NEQ" + '\n';}
+ | aexp=expr_arithmetique '==' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "EQUAL" + '\n';}
  | a=bool 'and' b=bool {$code = $a.code + $b.code + "MUL" + '\n';} //a*b
  | a=bool 'or' b=bool
     {
