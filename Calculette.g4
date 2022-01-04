@@ -45,7 +45,7 @@ decl returns [ String code ]
 instruction returns [ String code ]
 : expression finInstruction
 {
-    $code = $expression.code;
+    $code = $expression.code + "POP\n";
 }
 | assignation finInstruction
 {
@@ -63,8 +63,17 @@ assignation returns [ String code ]
 : id=IDENTIFIANT '=' expression
 {
     $code = $expression.code;
-    $code += "STOREG" + variable.get($id.text) + "\n"; 
+    $code += "STOREG " + variable.get($id.text) + "\n"; 
 }
+;
+
+bloc returns [String code]
+ @init {
+   $code = new String();
+ }
+ : '{' NEWLINE*
+      (instruction fin_expression + {$code += $instruction.code;})+
+   '}'
 ;
 
 //expression est une expression arithmétique ou un booléen
@@ -82,7 +91,7 @@ expr_arithmetique returns [String code]
  | a=expr_arithmetique '-' b=expr_arithmetique {$code = $a.code + $b.code + "SUB" + '\n';}
  | '-' ENTIER {$code = "PUSHI " + -$ENTIER.int + '\n';} 
  | ENTIER {$code = "PUSHI " + $ENTIER.int + '\n';}
- |id=IDENTIFIANT {$code= "PUSHG" + variable.get($id.text) + "\n";}
+ |id=IDENTIFIANT {$code= "PUSHG " + variable.get($id.text) + "\n";}
 // | FLOAT {$code = "  PUSHF " + $FLOAT.text + '\n';}
 /*| ENTIER {
     $type = "int";
@@ -106,7 +115,7 @@ expr_arithmetique returns [String code]
     {
         //ou classsique (a + b >= 1)
         $code = $a.code + $b.code + "ADD" + '\n';
-        $code += "PUSHI" + "1" + '\n';
+        $code += "PUSHI " + "1" + '\n';
         $code += "SUPEQ" + '\n';
     }
 // ou exclusif
@@ -114,8 +123,10 @@ expr_arithmetique returns [String code]
     {
         $code = $a.code + $b.code + "NEQ" + '\n';
     }
- | 'true' {$code = "PUSHI" + "1" + '\n';}
- | 'false' {$code = "PUSHI" + "0" + '\n';}
+ | 'true' {$code = "PUSHI " + "1" + '\n';}
+ | 'false' {$code = "PUSHI " + "0" + '\n';}
+ |id=IDENTIFIANT {$code= "PUSHG " + variable.get($id.text) + "\n";}
+
 ;
 
 
