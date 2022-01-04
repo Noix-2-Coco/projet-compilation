@@ -55,11 +55,10 @@ instruction returns [ String code ]
 {
 $code="";
 }
-| 'print' '('expression')' {$code = $expression.code + "WRITE\n" + "POP\n";}
-| 'afficher' '('expression')' {$code = $expression.code + "WRITE\n" + "POP\n";}
+| PRINT '('expression')' {$code = $expression.code + "WRITE\n" + "POP\n";}
 ;
 
-assignation returns [ String code ]
+assignation returns [String code]
 : id=IDENTIFIANT '=' expression
 {
     $code = $expression.code;
@@ -129,17 +128,8 @@ expr_arithmetique returns [String code]
 
 ;
 
-
-// lexer
+// règles du lexer
 TYPE : 'int' | 'float' | 'bool'; // pour pouvoir gérer des entiers, Booléens et floats
-
-//commence obligatoirement par une lettre puis lettres ou chiffres ou underscore
-IDENTIFIANT : ('a' ..'z' | 'A' ..'Z') (
-		'a' ..'z'
-		| 'A' ..'Z'
-		| '_'
-		| '0' ..'9'
-	)*; 
 
 ENTIER : ('1'..'9')('0'..'9')*;
 //fragment EXPOSANT: ('e' | 'E') ('+' | '-')? ENTIER;
@@ -148,6 +138,19 @@ ENTIER : ('1'..'9')('0'..'9')*;
 fin_expression
  : EOF | NEWLINE | ';'
 ;
+
+IF : 'if' | 'si';
+ELSE : 'else' | 'sinon';
+
+PRINT : 'print' | 'afficher';
+
+//commence obligatoirement par une lettre puis lettres ou chiffres ou underscore
+IDENTIFIANT : ('a' ..'z' | 'A' ..'Z') (
+		'a' ..'z'
+		| 'A' ..'Z'
+		| '_'
+		| '0' ..'9'
+	)*; 
 
 // règles du lexer. Skip pour dire ne rien faire
 NEWLINE : '\r'? '\n' -> skip;
