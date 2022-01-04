@@ -2,7 +2,20 @@
 grammar Calculette;
 // règles de la grammaire
 
-//start à remplacer par calcul
+@header 
+{
+    import java.util.HashMap;
+}
+
+@parser::members 
+{
+    //position à laquelle est stockée la variable
+    int position = 0; 
+    //hashmap qui contient le nom de la variable (string) et sa position dans la pile (entier)
+    HashMap<String, Integer> variable = new HashMap<String, Integer>();
+}
+
+// /!\ start à remplacer par calcul
 start returns [ String code ]
 @init{ $code = new String(); } // On initialise $code, pour ensuite l’utiliser comme accumulateur
 @after{ System.out.println($code); } // on affiche le code MVaP stocké dans code 
@@ -18,38 +31,39 @@ finInstruction
 ;
 
 decl returns [ String code ]
-: TYPE IDENTIFIANT finInstruction
-{// à compléter
+: TYPE id=IDENTIFIANT finInstruction
+{
+    variable.put($id.text, position);
+    position ++;
+    $code = "PUSHI 0\n"; //valeur par défaut -> 0
 }
 ;
 
 //System.out.println($bool.code + "WRITE\n" + "POP\n" + "HALT\n");
 
 
-fin_expression
- : EOF | NEWLINE | ';'
-;
-
 instruction returns [ String code ]
 : expression finInstruction
 {
- // à compléter alcooline
+    $code = $expression.code;
 }
 | assignation finInstruction
 {
-// à compléter
+    $code = $assignation.code;
 }
 | finInstruction
 {
 $code="";
 }
 | 'print' '('expression')' {$code = $expression.code + "WRITE\n" + "POP\n";}
+| 'afficher' '('expression')' {$code = $expression.code + "WRITE\n" + "POP\n";}
 ;
 
 assignation returns [ String code ]
-: IDENTIFIANT '=' expression
+: id=IDENTIFIANT '=' expression
 {
-// à compléter
+    $code = $expression.code;
+    $code += "STOREG" + variable.get($id.text) + "\n"; 
 }
 ;
 
@@ -68,6 +82,7 @@ expr_arithmetique returns [String code]
  | a=expr_arithmetique '-' b=expr_arithmetique {$code = $a.code + $b.code + "SUB" + '\n';}
  | '-' ENTIER {$code = "PUSHI " + -$ENTIER.int + '\n';} 
  | ENTIER {$code = "PUSHI " + $ENTIER.int + '\n';}
+ |id=IDENTIFIANT {$code= "PUSHG" + variable.get($id.text) + "\n";}
 // | FLOAT {$code = "  PUSHF " + $FLOAT.text + '\n';}
 /*| ENTIER {
     $type = "int";
@@ -107,15 +122,21 @@ expr_arithmetique returns [String code]
 // lexer
 TYPE : 'int' | 'float' | 'bool'; // pour pouvoir gérer des entiers, Booléens et floats
 
+//commence obligatoirement par une lettre puis lettres ou chiffres ou underscore
 IDENTIFIANT : ('a' ..'z' | 'A' ..'Z') (
 		'a' ..'z'
 		| 'A' ..'Z'
 		| '_'
 		| '0' ..'9'
-	)*; //minuscule + majuscule + _ + chiffres
-ENTIER : ('0'..'9')+;
+	)*; 
+
+ENTIER : ('1'..'9')('0'..'9')*;
 //fragment EXPOSANT: ('e' | 'E') ('+' | '-')? ENTIER;
 //FLOAT : ENTIER (('.') ('0' ..'9')*)? EXPOSANT?;
+
+fin_expression
+ : EOF | NEWLINE | ';'
+;
 
 // règles du lexer. Skip pour dire ne rien faire
 NEWLINE : '\r'? '\n' -> skip;
