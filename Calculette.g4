@@ -81,7 +81,7 @@ bloc returns [String code]
    $code = new String();
  }
  : '{' NEWLINE*
-      (instruction finInstruction+ {$code += $instruction.code;})+
+      (instruction  {$code += $instruction.code;})+
    '}'
 ;
 
