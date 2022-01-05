@@ -1,0 +1,10 @@
+int x;
+int y;
+int z;
+x=5;
+y=3;
+z=1;
+{
+print(z+y*x);
+print(8-9);
+}
