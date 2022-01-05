@@ -1,9 +1,5 @@
-int u
-int za
-u = 1
-za = 42
-si (za > u) {
- u = u+1
- afficher(u)
- }
-sinon afficher(za)
+int i
+i = 0
+repeter i = i + 2
+tantque (i <= 40)
+afficher(i)

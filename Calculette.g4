@@ -65,7 +65,8 @@ $code="";
 }
 | PRINT '('expression')' {$code = $expression.code + "WRITE\n" + "POP\n";}
 | bloc {$code = $bloc.code;}
-| condition {$code = $condition.code;} ////
+| condition {$code = $condition.code;} 
+| do_while {$code = $do_while.code;}
 ;
 
 assignation returns [String code]
@@ -85,35 +86,59 @@ bloc returns [String code]
    '}'
 ;
 
-//structure conditionnelle
+//structure conditionnelle (si(cond) sinon (facultatif))
 condition returns [String code]
-    @init {
+    @init 
+    {
         String instruction_if = new String();
         String instruction_else = new String();
-        String label_if = newlabel();
-        String label_else = newlabel();
+        String label_if = newlabel(); //label_if permet de sauter les instructions if
+        String label_else = newlabel(); //label_if permet de sauter les instructions else
     }
     : IF '(' bool ')' NEWLINE*
-        (bloc {instruction_if += $bloc.code;}
-        | instruction {instruction_if += $instruction.code;}
-        )
+    (bloc {instruction_if += $bloc.code;}
+    | instruction {instruction_if += $instruction.code;}
+    )
     (ELSE NEWLINE*
-        (bloc {instruction_else += $bloc.code;}
-        | instruction {instruction_else += $instruction.code;}
-        | condition {instruction_else += $condition.code;}
-        ))? {
-            $code = $bool.code;
-            $code += "JUMPF " + label_if + "\n";
-            $code += instruction_if;
-            if (instruction_else != "") {$code += "JUMP " + label_else + "\n";}
+    (bloc {instruction_else += $bloc.code;}
+    | instruction {instruction_else += $instruction.code;}
+    | condition {instruction_else += $condition.code;}
+    ))? 
+    {
+        $code = $bool.code;
+        $code += "JUMPF " + label_if + "\n";
+        $code += instruction_if;
+        if (instruction_else != "") 
+        {$code += "JUMP " + label_else + "\n";}
 
-            $code += "LABEL " + label_if + "\n";
+        $code += "LABEL " + label_if + "\n";
 
-            if (instruction_else != "") {
-                $code += instruction_else;
-                $code += "LABEL " + label_else + "\n";
-            }
+        if (instruction_else != "") 
+        {
+            $code += instruction_else;
+            $code += "LABEL " + label_else + "\n";
         }
+    }
+;
+
+//répéter tant que (do while)
+do_while returns [String code]
+    @init 
+    {
+        String instruction_do_while = new String();
+    }
+    : DO NEWLINE*
+    (bloc {instruction_do_while += $bloc.code;}
+    | instruction {instruction_do_while += $instruction.code;}
+    )
+    WHILE '(' bool ')'
+    {
+        String label_do_while = newlabel(); //nouvelle étiquette pour le do while
+        $code = "LABEL " + label_do_while + "\n"; //on étiquète le début du do while
+        $code += instruction_do_while; 
+        $code += "PUSHI 1" + '\n' + $bool.code + '\n'+ "SUB" + '\n'; //négation de la condition
+        $code += "JUMPF " + label_do_while + "\n"; //si not(condition) est fausse on répète les instructions du do while 
+    }
 ;
 
 //expression est une expression arithmétique ou un booléen
@@ -172,20 +197,25 @@ expr_arithmetique returns [String code]
 // règles du lexer
 TYPE : 'int' | 'float' | 'bool'; // pour pouvoir gérer des entiers, Booléens et floats
 
-ENTIER : ('1'..'9')('0'..'9')*;
+//entier ne peut pas commencer par 0 sauf 0
+ENTIER : '0' | ('1'..'9')('0'..'9')*;
 //fragment EXPOSANT: ('e' | 'E') ('+' | '-')? ENTIER;
 //FLOAT : ENTIER (('.') ('0' ..'9')*)? EXPOSANT?;
-
-
 
 //pour que la multiplication et la division aient le même niveau de priorité
 MUL_DIV : '*' {setText("MUL");}
 | '/' {setText("DIV");}
 ;
 
+//condition
 IF : 'if' | 'si';
 ELSE : 'else' | 'sinon';
 
+//boucle
+DO : 'do' | 'repeter';
+WHILE : 'while' | 'tantque';
+
+//affichage
 PRINT : 'print' | 'afficher';
 
 //commence obligatoirement par une lettre puis lettres ou chiffres ou underscore
