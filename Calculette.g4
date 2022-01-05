@@ -13,6 +13,13 @@ grammar Calculette;
     int position = 0; 
     //hashmap qui contient le nom de la variable (string) et sa position dans la pile (entier)
     HashMap<String, Integer> variable = new HashMap<String, Integer>();
+
+    //création des numéros d'étiquettes (première = 0)
+    int current_label = 0;
+
+    String newlabel() {
+        return Integer.toString(current_label++);
+    }
 }
 
 // règles de la grammaire
@@ -58,6 +65,7 @@ $code="";
 }
 | PRINT '('expression')' {$code = $expression.code + "WRITE\n" + "POP\n";}
 | bloc {$code = $bloc.code;}
+| condition {$code = $condition.code;} ////
 ;
 
 assignation returns [String code]
@@ -73,8 +81,39 @@ bloc returns [String code]
    $code = new String();
  }
  : '{' NEWLINE*
-      (instruction fin_expression+ {$code += $instruction.code;})+
+      (instruction finInstruction+ {$code += $instruction.code;})+
    '}'
+;
+
+//structure conditionnelle
+condition returns [String code]
+    @init {
+        String instruction_if = new String();
+        String instruction_else = new String();
+        String label_if = newlabel();
+        String label_else = newlabel();
+    }
+    : IF '(' bool ')' NEWLINE*
+        (bloc {instruction_if += $bloc.code;}
+        | instruction {instruction_if += $instruction.code;}
+        )
+    (ELSE NEWLINE*
+        (bloc {instruction_else += $bloc.code;}
+        | instruction {instruction_else += $instruction.code;}
+        | condition {instruction_else += $condition.code;}
+        ))? {
+            $code = $bool.code;
+            $code += "JUMPF " + label_if + "\n";
+            $code += instruction_if;
+            if (instruction_else != "") {$code += "JUMP " + label_else + "\n";}
+
+            $code += "LABEL " + label_if + "\n";
+
+            if (instruction_else != "") {
+                $code += instruction_else;
+                $code += "LABEL " + label_else + "\n";
+            }
+        }
 ;
 
 //expression est une expression arithmétique ou un booléen
@@ -129,6 +168,7 @@ expr_arithmetique returns [String code]
 
 ;
 
+
 // règles du lexer
 TYPE : 'int' | 'float' | 'bool'; // pour pouvoir gérer des entiers, Booléens et floats
 
@@ -136,9 +176,7 @@ ENTIER : ('1'..'9')('0'..'9')*;
 //fragment EXPOSANT: ('e' | 'E') ('+' | '-')? ENTIER;
 //FLOAT : ENTIER (('.') ('0' ..'9')*)? EXPOSANT?;
 
-fin_expression
- : EOF | NEWLINE | ';'
-;
+
 
 //pour que la multiplication et la division aient le même niveau de priorité
 MUL_DIV : '*' {setText("MUL");}
@@ -159,6 +197,6 @@ IDENTIFIANT : ('a' ..'z' | 'A' ..'Z') (
 	)*; 
 
 // Skip pour dire ne rien faire
-NEWLINE : '\r'? '\n' -> skip;
+NEWLINE : '\r'? '\n';
 WS : (' '|'\t')+ -> skip;
 UNMATCH : . -> skip;
