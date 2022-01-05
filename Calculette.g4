@@ -86,8 +86,7 @@ expression returns [String code]
 //expressions arithmétiques
 expr_arithmetique returns [String code]
  : '(' a=expr_arithmetique ')' {$code = $a.code;}
- | a=expr_arithmetique '/' b=expr_arithmetique {$code = $a.code + $b.code + "DIV" + '\n';}
- | a=expr_arithmetique '*' b=expr_arithmetique {$code = $a.code + $b.code + "MUL" + '\n';}
+ | a=expr_arithmetique MUL_DIV b=expr_arithmetique {$code = $a.code + $b.code + $MUL_DIV.getText() + '\n';}
  | a=expr_arithmetique '+' b=expr_arithmetique {$code = $a.code + $b.code + "ADD" + '\n';}
  | a=expr_arithmetique '-' b=expr_arithmetique {$code = $a.code + $b.code + "SUB" + '\n';}
  | '-' ENTIER {$code = "PUSHI " + -$ENTIER.int + '\n';} 
@@ -141,6 +140,11 @@ fin_expression
  : EOF | NEWLINE | ';'
 ;
 
+//pour que la multiplication et la division aient le même niveau de priorité
+MUL_DIV : '*' {setText("MUL");}
+| '/' {setText("DIV");}
+;
+
 IF : 'if' | 'si';
 ELSE : 'else' | 'sinon';
 
@@ -154,7 +158,7 @@ IDENTIFIANT : ('a' ..'z' | 'A' ..'Z') (
 		| '0' ..'9'
 	)*; 
 
-// règles du lexer. Skip pour dire ne rien faire
+// Skip pour dire ne rien faire
 NEWLINE : '\r'? '\n' -> skip;
 WS : (' '|'\t')+ -> skip;
 UNMATCH : . -> skip;
