@@ -92,8 +92,8 @@ condition returns [String code]
     {
         String instruction_if = new String();
         String instruction_else = new String();
-        String label_if = newlabel(); //label_if permet de sauter les instructions if
-        String label_else = newlabel(); //label_if permet de sauter les instructions else
+        String label_else = newlabel(); //label_else permet d'aller au else
+        String label_fin = newlabel(); //label_fin permet d'aller à la fin
     }
     : IF '(' bool ')' NEWLINE*
     (bloc {instruction_if += $bloc.code;}
@@ -105,18 +105,18 @@ condition returns [String code]
     | condition {instruction_else += $condition.code;}
     ))? 
     {
-        $code = $bool.code;
-        $code += "JUMPF " + label_if + "\n";
+        $code = $bool.code + "\n"; //enlever le \n ?
+        $code += "JUMPF " + label_else + "\n";
         $code += instruction_if;
         if (instruction_else != "") 
-        {$code += "JUMP " + label_else + "\n";}
+        {$code += "JUMP " + label_fin + "\n";}
 
-        $code += "LABEL " + label_if + "\n";
+        $code += "LABEL " + label_else + "\n";
 
         if (instruction_else != "") 
         {
             $code += instruction_else;
-            $code += "LABEL " + label_else + "\n";
+            $code += "LABEL " + label_fin + "\n";
         }
     }
 ;
