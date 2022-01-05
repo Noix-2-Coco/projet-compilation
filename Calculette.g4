@@ -1,7 +1,7 @@
 //projet de compilation Alice GYDÉ et Coline TREHOUT
 grammar Calculette;
-// règles de la grammaire
 
+//import d'une bibliothèque
 @header 
 {
     import java.util.HashMap;
@@ -15,6 +15,7 @@ grammar Calculette;
     HashMap<String, Integer> variable = new HashMap<String, Integer>();
 }
 
+// règles de la grammaire
 // /!\ start à remplacer par calcul
 start returns [ String code ]
 @init{ $code = new String(); } // On initialise $code, pour ensuite l’utiliser comme accumulateur
@@ -56,6 +57,7 @@ instruction returns [ String code ]
 $code="";
 }
 | PRINT '('expression')' {$code = $expression.code + "WRITE\n" + "POP\n";}
+| bloc {$code = $bloc.code;}
 ;
 
 assignation returns [String code]
@@ -71,7 +73,7 @@ bloc returns [String code]
    $code = new String();
  }
  : '{' NEWLINE*
-      (instruction fin_expression + {$code += $instruction.code;})+
+      (instruction fin_expression+ {$code += $instruction.code;})+
    '}'
 ;
 
