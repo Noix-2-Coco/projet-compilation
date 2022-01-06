@@ -1,4 +1,4 @@
-//projet de compilation Alice GYDÉ et Coline TREHOUT
+//projet de compilation Alice GYDÉ et Coline TREHOUT, groupe de TP1
 grammar Calculette;
 
 @header 
@@ -9,7 +9,7 @@ grammar Calculette;
 @parser::members 
 {
     //position à laquelle est stockée la variable
-    int position_pile = 0; 
+    int position_pile = 2; //début 2 (les 2 premières cases sont réservées pour le calcul des exposants) 
     //hashmap qui contient le nom de la variable (string) et sa position dans la pile (entier)
     HashMap<String, Integer> variable = new HashMap<String, Integer>();
 
@@ -25,13 +25,15 @@ grammar Calculette;
 // règles de la grammaire
 // /!\ start à remplacer par calcul
 start returns [ String code ]
-@init { $code = new String(); } // On initialise $code, pour ensuite l’utiliser comme accumulateur
+@init 
+{ 
+    $code = new String(); //On initialise $code, pour ensuite l’utiliser comme accumulateur
+    //pour le calcul des exposants a^b
+    $code += "PUSHI 0\n"; //a sera stocké à 0
+    $code += "PUSHI 0\n"; //b sera stocké à 1
+} 
 @after  
 { 
-    for (int i = 0; i < position_pile; i++) 
-    {
-        $code += "POP\n";
-    }
     System.out.println($code); // on affiche le code MVaP stocké dans code 
 } 
 : (decl { $code += $decl.code; })*
@@ -51,8 +53,8 @@ finInstruction
 decl returns [ String code ]
 : TYPE id=IDENTIFIANT finInstruction
 {
-    variable.put($id.text, position_pile);
-    position_pile ++;
+    variable.put($id.text, position_pile); //stockage dans la hashmap
+    position_pile ++; 
     $code = "PUSHI 0\n"; //valeur par défaut -> 0
 }
 ;
@@ -166,7 +168,7 @@ do_while returns [String code]
 (
     instruction {instruction_do_while += $instruction.code;}
 )
-TANTQUE '(' bool ')'
+NEWLINE* TANTQUE '(' bool ')'
 {
     String label_do_while = newlabel(); //nouvelle étiquette pour le do while
     $code = "LABEL " + label_do_while + "\n"; //on étiquète le début du do while
@@ -185,6 +187,50 @@ expression returns [String code]
 //expressions arithmétiques
 expr_arithmetique returns [String code]
  : '(' a=expr_arithmetique ')' {$code = $a.code;}
+ | a=expr_arithmetique EXP b=expr_arithmetique 
+ {
+    String label_do_while = newlabel(); //nouvelle étiquette pour le do while
+    String label_fin = newlabel(); //étiquette fin
+    String label_exp_1 = newlabel(); //étiquette test exposant = 1
+    String label_exp_0 = newlabel(); //étiquette test exposant = 0
+
+    $code = $a.code + "STOREG 0" + "\n"; //stocke a à 0
+    $code += $b.code + "STOREG 1" + "\n";  //stocke b à 1
+
+    //si exp neg, a == 0
+    $code += $b.code + "PUSHI 0" + "\n" + "INF\n";
+    $code += "JUMPF " + label_exp_0 + "\n";
+    $code += "PUSHI 0\n" + "STOREG 0" + "\n";
+    $code += "JUMP " + label_fin + "\n";
+
+    //si exp == 0, a = 1
+    $code += "LABEL " + label_exp_0 + "\n";
+    $code += $b.code + "PUSHI 0" + "\n" + "EQUAL\n"; 
+    $code += "JUMPF " + label_exp_1 + "\n";
+    $code += "PUSHI 1\n" + "STOREG 0" + "\n";
+    $code += "JUMP " + label_fin + "\n";
+
+    //si exp == 1, a = a
+    $code += "LABEL " + label_exp_1 + "\n";
+    $code += $b.code + "PUSHI 1" + "\n" + "EQUAL\n"; 
+    $code += "JUMPF " + label_do_while + "\n";
+    $code += "JUMP " + label_fin + "\n";
+
+    //si exp>1, calcul de a
+    $code += "LABEL " + label_do_while + "\n"; //on étiquète le début du do while
+    $code += "PUSHG 0\n" + $a.code + "MUL" + "\n" + "STOREG 0" + "\n"; //a*a
+    $code += "PUSHG 1\n" + "PUSHI 1" + "\n" + "SUB\n" + "STOREG 1" + "\n"; //b--
+
+    //condition tant que (b>1) (non b <= 1)
+    $code += "PUSHG 1" + "\n";
+    $code += "PUSHI 1" + "\n"; 
+    $code += "INFEQ" + "\n";
+
+    $code += "JUMPF " + label_do_while + "\n";
+
+    $code += "LABEL " + label_fin + "\n";
+    $code += "PUSHG 0\n"; //résultat de a^b placé au sommet de la pile
+ }
  | a=expr_arithmetique MUL_DIV b=expr_arithmetique {$code = $a.code + $b.code + $MUL_DIV.getText() + "\n";}
  | a=expr_arithmetique '+' b=expr_arithmetique {$code = $a.code + $b.code + "ADD" + "\n";}
  | a=expr_arithmetique '-' b=expr_arithmetique {$code = $a.code + $b.code + "SUB" + "\n";}
@@ -192,10 +238,6 @@ expr_arithmetique returns [String code]
  | ENTIER {$code = "PUSHI " + $ENTIER.int + "\n";}
  |id=IDENTIFIANT {$code= "PUSHG " + variable.get($id.text) + "\n";}
 // | FLOAT {$code = "  PUSHF " + $FLOAT.text + '\n';}
-/*| ENTIER {
-    $type = "int";
-    $code = "  PUSHI " + $ENTIER.text + "\n";
- };*/
  ;
 
 //booléens
@@ -216,10 +258,10 @@ expr_arithmetique returns [String code]
         $code += "PUSHI " + "1" + "\n";
         $code += "SUPEQ" + "\n";
     } //(a + b >= 1)
-// ou exclusif
+ //ou exclusif
  | a=bool 'xor' b=bool
     {
-        $code = $a.code + $b.code + "NEQ" + "\n";
+        $code = $a.code + $b.code + "NEQ" + "\n"; //a != b
     }
  | 'true' {$code = "PUSHI " + "1" + "\n";}
  | 'false' {$code = "PUSHI " + "0" + "\n";}
@@ -230,15 +272,16 @@ expr_arithmetique returns [String code]
 
 // règles du lexer
 
-//EXP : '^';
+EXP : '^';
 
 //pour pouvoir gérer des entiers, flottants et booléens
 TYPE : 'int' | 'float' | 'bool'; 
 
 //entier ne peut pas commencer par 0 sauf 0
 ENTIER : '0' | ('1'..'9')('0'..'9')*;
+FLOAT : ('0'..'9')+('.')('0'..'9')+;
+
 //fragment EXPOSANT: ('e' | 'E') ('+' | '-')? ENTIER;
-//FLOAT : ('0'..'9')+('.')('0'..'9')+;
 
 //pour que la multiplication et la division aient le même niveau de priorité
 MUL_DIV : '*' {setText("MUL");}
@@ -261,12 +304,12 @@ LIRE : 'read' | 'lire';
 
 //commence obligatoirement par une lettre puis lettres ou chiffres ou underscore
 IDENTIFIANT : ('a' ..'z' | 'A' ..'Z') 
-        (
-		'a' ..'z'
-		| 'A' ..'Z'
-		| '_'
-		| '0' ..'9'
-	    )*; 
+    (
+    'a' ..'z'
+    | 'A' ..'Z'
+    | '_'
+    | '0' ..'9'
+    )*; 
 
 // Skip pour dire ne rien faire
 NEWLINE : '\r'? '\n';
