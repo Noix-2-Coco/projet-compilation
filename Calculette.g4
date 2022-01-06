@@ -1,7 +1,6 @@
 //projet de compilation Alice GYDÉ et Coline TREHOUT
 grammar Calculette;
 
-//import d'une bibliothèque
 @header 
 {
     import java.util.HashMap;
@@ -17,6 +16,7 @@ grammar Calculette;
     //création des numéros d'étiquettes (première = 0)
     int current_label = 0;
 
+    //renvoie l'étiquette courante
     String newlabel() {
         return Integer.toString(current_label++);
     }
@@ -44,7 +44,7 @@ EOF
 finInstruction
 : (NEWLINE 
 | ';'
-| 'EOF')+
+)+
 ;
 
 decl returns [ String code ]
@@ -55,9 +55,6 @@ decl returns [ String code ]
     $code = "PUSHI 0\n"; //valeur par défaut -> 0
 }
 ;
-
-//System.out.println($bool.code + "WRITE\n" + "POP\n" + "HALT\n");
-
 
 instruction returns [ String code ]
 : expression finInstruction
@@ -109,43 +106,34 @@ $code = new String();
 '}'
 ;
 
-
-////
-//structure conditionnelle (si(cond) sinon (facultatif))
-/*condition returns [String code]
-    @init 
-    {
-        String instruction_if = new String();
-        String instruction_else = new String();
-        String label_else = newlabel(); //label_else permet d'aller au else
-        String label_fin = newlabel(); //label_fin permet d'aller à la fin
-    }
-    : IF '(' bool ')' NEWLINE*
-    (bloc {instruction_if += $bloc.code;}
-    | instruction {instruction_if += $instruction.code;}
-    )
-    (ELSE NEWLINE*
-    (bloc {instruction_else += $bloc.code;}
-    | instruction {instruction_else += $instruction.code;}
-    | condition {instruction_else += $condition.code;}
-    ))? 
-    {
-        $code = $bool.code + "\n"; //enlever le \n ?
-        $code += "JUMPF " + label_else + "\n";
-        $code += instruction_if;
-        if (instruction_else != "") 
-        {$code += "JUMP " + label_fin + "\n";}
-
-        $code += "LABEL " + label_else + "\n";
-
-        if (instruction_else != "") 
-        {
-            $code += instruction_else;
-            $code += "LABEL " + label_fin + "\n";
-        }
-    }
-;*/
-////
+si_sinon returns [String code]
+@init 
+{
+    String instruction_if = new String();
+    String instruction_else = new String();
+    String label_else = newlabel(); //label_else permet d'aller aux instructions else
+    String label_fin = newlabel(); //label_fin permet d'aller à la fin
+}
+: IF '(' bool ')' NEWLINE*
+(bloc {instruction_if += $bloc.code;}
+| instruction {instruction_if += $instruction.code;}
+)
+NEWLINE* ELSE NEWLINE*
+(bloc {instruction_else += $bloc.code;}
+| instruction {instruction_else += $instruction.code;}
+| si {instruction_else += $si.code;}
+| si_sinon {instruction_else += $si_sinon.code;}
+)
+{
+    $code = $bool.code + "\n"; //enlever le \n ?
+    $code += "JUMPF " + label_else + "\n";
+    $code += instruction_if;
+    $code += "JUMP " + label_fin + "\n";
+    $code += "LABEL " + label_else + "\n";
+    $code += instruction_else;
+    $code += "LABEL " + label_fin + "\n";
+}
+;
 
 si returns [String code]
 @init 
@@ -164,38 +152,6 @@ si returns [String code]
     $code += "LABEL " + label_fin + "\n";
 }
 ;
-
-si_sinon returns [String code]
-@init 
-{
-    String instruction_if = new String();
-    String instruction_else = new String();
-    String label_else = newlabel(); //label_else permet d'aller aux instructions else
-    String label_fin = newlabel(); //label_fin permet d'aller à la fin
-}
-: IF '(' bool ')' NEWLINE*
-(bloc {instruction_if += $bloc.code;}
-| instruction {instruction_if += $instruction.code;}
-)
-ELSE NEWLINE*
-(bloc {instruction_else += $bloc.code;}
-| instruction {instruction_else += $instruction.code;}
-| si {instruction_else += $si.code;}
-| si_sinon {instruction_else += $si_sinon.code;}
-)
-{
-    $code = $bool.code + "\n"; //enlever le \n ?
-    $code += "JUMPF " + label_else + "\n";
-    $code += instruction_if;
-    $code += "JUMP " + label_fin + "\n";
-    $code += "LABEL " + label_else + "\n";
-    $code += instruction_else;
-    $code += "LABEL " + label_fin + "\n";
-}
-;
-
-///////
-
 
 //répéter tant que (do while)
 do_while returns [String code]
