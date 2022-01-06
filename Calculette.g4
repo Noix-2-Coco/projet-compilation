@@ -10,7 +10,7 @@ grammar Calculette;
 @parser::members 
 {
     //position à laquelle est stockée la variable
-    int position = 0; 
+    int position_pile = 0; 
     //hashmap qui contient le nom de la variable (string) et sa position dans la pile (entier)
     HashMap<String, Integer> variable = new HashMap<String, Integer>();
 
@@ -26,23 +26,32 @@ grammar Calculette;
 // /!\ start à remplacer par calcul
 start returns [ String code ]
 @init{ $code = new String(); } // On initialise $code, pour ensuite l’utiliser comme accumulateur
-@after{ System.out.println($code); } // on affiche le code MVaP stocké dans code 
+@after  
+        { 
+            for (int i = 0; i < position_pile; i++) 
+            {
+                $code += "POP\n";
+            }
+            System.out.println($code); // on affiche le code MVaP stocké dans code 
+        } 
 : (decl { $code += $decl.code; })*
 NEWLINE*
-(instruction { $code += $instruction.code; })*
+(instruction { $code += $instruction.code; })* 
+EOF
 { $code += " HALT\n"; }
 ;
 
 finInstruction
 : (NEWLINE 
-| ';')+
+| ';'
+| 'EOF')+
 ;
 
 decl returns [ String code ]
 : TYPE id=IDENTIFIANT finInstruction
 {
-    variable.put($id.text, position);
-    position ++;
+    variable.put($id.text, position_pile);
+    position_pile ++;
     $code = "PUSHI 0\n"; //valeur par défaut -> 0
 }
 ;
@@ -64,11 +73,22 @@ instruction returns [ String code ]
 $code="";
 }
 | PRINT '('expression')' {$code = $expression.code + "WRITE\n" + "POP\n";}
+| read {$code = $read.code;}
 | bloc {$code = $bloc.code;}
 | condition {$code = $condition.code;} 
 | do_while {$code = $do_while.code;}
 ;
 
+//lecture
+read returns [String code]
+: READ '(' id=IDENTIFIANT ')'
+{
+    $code = "READ\n";
+    $code += "STOREG " + variable.get($id.text) + "\n"; 
+}
+;
+
+//affectation
 assignation returns [String code]
 : id=IDENTIFIANT '=' expression
 {
@@ -77,6 +97,7 @@ assignation returns [String code]
 }
 ;
 
+//bloc d'instructions
 bloc returns [String code]
  @init {
    $code = new String();
@@ -136,12 +157,12 @@ do_while returns [String code]
         String label_do_while = newlabel(); //nouvelle étiquette pour le do while
         $code = "LABEL " + label_do_while + "\n"; //on étiquète le début du do while
         $code += instruction_do_while; 
-        $code += "PUSHI 1" + '\n' + $bool.code + '\n'+ "SUB" + '\n'; //négation de la condition
+        $code += "PUSHI 1" + "\n" + $bool.code + "\n" + "SUB" + "\n"; //négation de la condition
         $code += "JUMPF " + label_do_while + "\n"; //si not(condition) est fausse on répète les instructions du do while 
     }
 ;
 
-//expression est une expression arithmétique ou un booléen
+//expression est une expression arithmétique ou booléenne
 expression returns [String code]
 : expr_arithmetique {$code = $expr_arithmetique.code;}
 | bool {$code = $bool.code;}
@@ -150,11 +171,11 @@ expression returns [String code]
 //expressions arithmétiques
 expr_arithmetique returns [String code]
  : '(' a=expr_arithmetique ')' {$code = $a.code;}
- | a=expr_arithmetique MUL_DIV b=expr_arithmetique {$code = $a.code + $b.code + $MUL_DIV.getText() + '\n';}
- | a=expr_arithmetique '+' b=expr_arithmetique {$code = $a.code + $b.code + "ADD" + '\n';}
- | a=expr_arithmetique '-' b=expr_arithmetique {$code = $a.code + $b.code + "SUB" + '\n';}
- | '-' ENTIER {$code = "PUSHI " + -$ENTIER.int + '\n';} 
- | ENTIER {$code = "PUSHI " + $ENTIER.int + '\n';}
+ | a=expr_arithmetique MUL_DIV b=expr_arithmetique {$code = $a.code + $b.code + $MUL_DIV.getText() + "\n";}
+ | a=expr_arithmetique '+' b=expr_arithmetique {$code = $a.code + $b.code + "ADD" + "\n";}
+ | a=expr_arithmetique '-' b=expr_arithmetique {$code = $a.code + $b.code + "SUB" + "\n";}
+ | '-' ENTIER {$code = "PUSHI " + -$ENTIER.int + "\n";} 
+ | ENTIER {$code = "PUSHI " + $ENTIER.int + "\n";}
  |id=IDENTIFIANT {$code= "PUSHG " + variable.get($id.text) + "\n";}
 // | FLOAT {$code = "  PUSHF " + $FLOAT.text + '\n';}
 /*| ENTIER {
@@ -168,27 +189,27 @@ expr_arithmetique returns [String code]
  : '(' a=bool ')' {$code = $a.code;}
  //comparaisons d'expressions arithmétiques
  | 'not' a=bool {$code = "PUSHI 1" + '\n' + $a.code + "SUB" + '\n';} //1-a
- | aexp=expr_arithmetique '>' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "SUP" + '\n';}
- | aexp=expr_arithmetique '>=' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "SUPEQ" + '\n';}
- | aexp=expr_arithmetique '<' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "INF" + '\n';}
- | aexp=expr_arithmetique '<=' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "INFEQ" + '\n';}
- | aexp=expr_arithmetique '<>' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "NEQ" + '\n';}
- | aexp=expr_arithmetique '==' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "EQUAL" + '\n';}
+ | aexp=expr_arithmetique '>' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "SUP" + "\n";}
+ | aexp=expr_arithmetique '>=' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "SUPEQ" + "\n";}
+ | aexp=expr_arithmetique '<' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "INF" + "\n";}
+ | aexp=expr_arithmetique '<=' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "INFEQ" + "\n";}
+ | aexp=expr_arithmetique '<>' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "NEQ" + "\n";}
+ | aexp=expr_arithmetique '==' bexp=expr_arithmetique {$code = $aexp.code + $bexp.code + "EQUAL" + "\n";}
  | a=bool 'and' b=bool {$code = $a.code + $b.code + "MUL" + '\n';} //a*b
  | a=bool 'or' b=bool
     {
         //ou classsique (a + b >= 1)
-        $code = $a.code + $b.code + "ADD" + '\n';
-        $code += "PUSHI " + "1" + '\n';
-        $code += "SUPEQ" + '\n';
+        $code = $a.code + $b.code + "ADD" + "\n";
+        $code += "PUSHI " + "1" + "\n";
+        $code += "SUPEQ" + "\n";
     }
 // ou exclusif
  | a=bool 'xor' b=bool
     {
-        $code = $a.code + $b.code + "NEQ" + '\n';
+        $code = $a.code + $b.code + "NEQ" + "\n";
     }
- | 'true' {$code = "PUSHI " + "1" + '\n';}
- | 'false' {$code = "PUSHI " + "0" + '\n';}
+ | 'true' {$code = "PUSHI " + "1" + "\n";}
+ | 'false' {$code = "PUSHI " + "0" + "\n";}
  |id=IDENTIFIANT {$code= "PUSHG " + variable.get($id.text) + "\n";}
 
 ;
@@ -218,13 +239,17 @@ WHILE : 'while' | 'tantque';
 //affichage
 PRINT : 'print' | 'afficher';
 
+//lecture
+READ : 'read' | 'lire';
+
 //commence obligatoirement par une lettre puis lettres ou chiffres ou underscore
-IDENTIFIANT : ('a' ..'z' | 'A' ..'Z') (
+IDENTIFIANT : ('a' ..'z' | 'A' ..'Z') 
+        (
 		'a' ..'z'
 		| 'A' ..'Z'
 		| '_'
 		| '0' ..'9'
-	)*; 
+	    )*; 
 
 // Skip pour dire ne rien faire
 NEWLINE : '\r'? '\n';
