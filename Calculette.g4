@@ -119,12 +119,12 @@ si_sinon returns [String code]
     String label_fin = newlabel(); //label_fin permet d'aller à la fin
 }
 : SI '(' bool ')' NEWLINE*
-(bloc {instruction_if += $bloc.code;}
+(
 | instruction {instruction_if += $instruction.code;}
 )
 NEWLINE* SINON NEWLINE*
-(bloc {instruction_else += $bloc.code;}
-| instruction {instruction_else += $instruction.code;}
+(
+    instruction {instruction_else += $instruction.code;}
 )
 {
     $code = $bool.code;
@@ -145,8 +145,8 @@ si returns [String code]
     String label_fin = newlabel(); //label_fin permet d'aller à la fin
 }
 : SI '(' bool ')' NEWLINE*
-(bloc {instruction_if += $bloc.code;}
-| instruction {instruction_if += $instruction.code;}
+(
+    instruction {instruction_if += $instruction.code;}
 )
 {
     $code = $bool.code;
@@ -163,8 +163,8 @@ do_while returns [String code]
     String instruction_do_while = new String();
 }
 : REPETER NEWLINE*
-(bloc {instruction_do_while += $bloc.code;}
-| instruction {instruction_do_while += $instruction.code;}
+(
+    instruction {instruction_do_while += $instruction.code;}
 )
 TANTQUE '(' bool ')'
 {
