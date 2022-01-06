@@ -1,5 +1,0 @@
-int i
-i = 0
-repeter i = i + 2
-tantque (i <= 40)
-afficher(i)
