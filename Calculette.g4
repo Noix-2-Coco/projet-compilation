@@ -25,15 +25,15 @@ grammar Calculette;
 // règles de la grammaire
 // /!\ start à remplacer par calcul
 start returns [ String code ]
-@init{ $code = new String(); } // On initialise $code, pour ensuite l’utiliser comme accumulateur
+@init { $code = new String(); } // On initialise $code, pour ensuite l’utiliser comme accumulateur
 @after  
-        { 
-            for (int i = 0; i < position_pile; i++) 
-            {
-                $code += "POP\n";
-            }
-            System.out.println($code); // on affiche le code MVaP stocké dans code 
-        } 
+{ 
+    for (int i = 0; i < position_pile; i++) 
+    {
+        $code += "POP\n";
+    }
+    System.out.println($code); // on affiche le code MVaP stocké dans code 
+} 
 : (decl { $code += $decl.code; })*
 NEWLINE*
 (instruction { $code += $instruction.code; })* 
@@ -75,7 +75,8 @@ $code="";
 | PRINT '('expression')' {$code = $expression.code + "WRITE\n" + "POP\n";}
 | read {$code = $read.code;}
 | bloc {$code = $bloc.code;}
-| condition {$code = $condition.code;} 
+| si {$code = $si.code;} 
+| si_sinon {$code = $si_sinon.code;} 
 | do_while {$code = $do_while.code;}
 ;
 
@@ -99,16 +100,19 @@ assignation returns [String code]
 
 //bloc d'instructions
 bloc returns [String code]
- @init {
-   $code = new String();
- }
- : '{' NEWLINE*
-      (instruction  {$code += $instruction.code;})+
-   '}'
+@init 
+{
+$code = new String();
+}
+: '{' NEWLINE*
+    (instruction  {$code += $instruction.code;})+
+'}'
 ;
 
+
+////
 //structure conditionnelle (si(cond) sinon (facultatif))
-condition returns [String code]
+/*condition returns [String code]
     @init 
     {
         String instruction_if = new String();
@@ -140,26 +144,77 @@ condition returns [String code]
             $code += "LABEL " + label_fin + "\n";
         }
     }
+;*/
+////
+
+si returns [String code]
+@init 
+{
+    String instruction_if = new String();
+    String label_fin = newlabel(); //label_fin permet d'aller à la fin
+}
+: IF '(' bool ')' NEWLINE*
+(bloc {instruction_if += $bloc.code;}
+| instruction {instruction_if += $instruction.code;}
+)
+{
+    $code = $bool.code + "\n"; //enlever le \n ?
+    $code += "JUMPF " + label_fin + "\n";
+    $code += instruction_if;
+    $code += "LABEL " + label_fin + "\n";
+}
 ;
+
+si_sinon returns [String code]
+@init 
+{
+    String instruction_if = new String();
+    String instruction_else = new String();
+    String label_else = newlabel(); //label_else permet d'aller aux instructions else
+    String label_fin = newlabel(); //label_fin permet d'aller à la fin
+}
+: IF '(' bool ')' NEWLINE*
+(bloc {instruction_if += $bloc.code;}
+| instruction {instruction_if += $instruction.code;}
+)
+ELSE NEWLINE*
+(bloc {instruction_else += $bloc.code;}
+| instruction {instruction_else += $instruction.code;}
+| si {instruction_else += $si.code;}
+| si_sinon {instruction_else += $si_sinon.code;}
+)
+{
+    $code = $bool.code + "\n"; //enlever le \n ?
+    $code += "JUMPF " + label_else + "\n";
+    $code += instruction_if;
+    $code += "JUMP " + label_fin + "\n";
+    $code += "LABEL " + label_else + "\n";
+    $code += instruction_else;
+    $code += "LABEL " + label_fin + "\n";
+}
+;
+
+///////
+
 
 //répéter tant que (do while)
 do_while returns [String code]
-    @init 
-    {
-        String instruction_do_while = new String();
-    }
-    : DO NEWLINE*
-    (bloc {instruction_do_while += $bloc.code;}
-    | instruction {instruction_do_while += $instruction.code;}
-    )
-    WHILE '(' bool ')'
-    {
-        String label_do_while = newlabel(); //nouvelle étiquette pour le do while
-        $code = "LABEL " + label_do_while + "\n"; //on étiquète le début du do while
-        $code += instruction_do_while; 
-        $code += "PUSHI 1" + "\n" + $bool.code + "\n" + "SUB" + "\n"; //négation de la condition
-        $code += "JUMPF " + label_do_while + "\n"; //si not(condition) est fausse on répète les instructions du do while 
-    }
+@init 
+{
+    String instruction_do_while = new String();
+}
+: DO NEWLINE*
+(bloc {instruction_do_while += $bloc.code;}
+| instruction {instruction_do_while += $instruction.code;}
+)
+WHILE '(' bool ')'
+{
+    String label_do_while = newlabel(); //nouvelle étiquette pour le do while
+    $code = "LABEL " + label_do_while + "\n"; //on étiquète le début du do while
+    $code += instruction_do_while; 
+    $code += "PUSHI 1" + "\n" + $bool.code + "\n" + "SUB" + "\n"; //négation de la condition
+    $code += "JUMPF " + label_do_while + "\n"; //si not(condition) est fausse on répète les instructions du do while 
+}
 ;
 
 //expression est une expression arithmétique ou booléenne
