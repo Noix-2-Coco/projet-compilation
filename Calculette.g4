@@ -125,11 +125,9 @@ si_sinon returns [String code]
 NEWLINE* SINON NEWLINE*
 (bloc {instruction_else += $bloc.code;}
 | instruction {instruction_else += $instruction.code;}
-| si {instruction_else += $si.code;}
-| si_sinon {instruction_else += $si_sinon.code;}
 )
 {
-    $code = $bool.code + "\n"; //enlever le \n ?
+    $code = $bool.code;
     $code += "JUMPF " + label_else + "\n";
     $code += instruction_if;
     $code += "JUMP " + label_fin + "\n";
@@ -151,7 +149,7 @@ si returns [String code]
 | instruction {instruction_if += $instruction.code;}
 )
 {
-    $code = $bool.code + "\n"; //enlever le \n ?
+    $code = $bool.code;
     $code += "JUMPF " + label_fin + "\n";
     $code += instruction_if;
     $code += "LABEL " + label_fin + "\n";
