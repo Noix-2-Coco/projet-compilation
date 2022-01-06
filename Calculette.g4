@@ -230,13 +230,15 @@ expr_arithmetique returns [String code]
 
 // règles du lexer
 
+//EXP : '^';
+
 //pour pouvoir gérer des entiers, flottants et booléens
 TYPE : 'int' | 'float' | 'bool'; 
 
 //entier ne peut pas commencer par 0 sauf 0
 ENTIER : '0' | ('1'..'9')('0'..'9')*;
 //fragment EXPOSANT: ('e' | 'E') ('+' | '-')? ENTIER;
-//FLOAT : ENTIER (('.') ('0' ..'9')*)? EXPOSANT?;
+//FLOAT : ('0'..'9')+('.')('0'..'9')+;
 
 //pour que la multiplication et la division aient le même niveau de priorité
 MUL_DIV : '*' {setText("MUL");}
