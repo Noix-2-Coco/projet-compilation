@@ -1,9 +1,0 @@
-int x
-int y
-int z
-x=2
-y=2
-z=5
-afficher((8/4)^(2*2))
-print(x^y+z)
-print(x^(z-y-1))
