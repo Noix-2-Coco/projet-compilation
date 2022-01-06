@@ -47,6 +47,7 @@ finInstruction
 )+
 ;
 
+//déclarations
 decl returns [ String code ]
 : TYPE id=IDENTIFIANT finInstruction
 {
@@ -56,6 +57,7 @@ decl returns [ String code ]
 }
 ;
 
+//instructions
 instruction returns [ String code ]
 : expression finInstruction
 {
@@ -69,8 +71,8 @@ instruction returns [ String code ]
 {
 $code="";
 }
-| PRINT '('expression')' {$code = $expression.code + "WRITE\n" + "POP\n";}
-| read {$code = $read.code;}
+| AFFICHER '('expression')' {$code = $expression.code + "WRITE\n" + "POP\n";}
+| lire {$code = $lire.code;}
 | bloc {$code = $bloc.code;}
 | si {$code = $si.code;} 
 | si_sinon {$code = $si_sinon.code;} 
@@ -78,8 +80,8 @@ $code="";
 ;
 
 //lecture
-read returns [String code]
-: READ '(' id=IDENTIFIANT ')'
+lire returns [String code]
+: LIRE '(' id=IDENTIFIANT ')'
 {
     $code = "READ\n";
     $code += "STOREG " + variable.get($id.text) + "\n"; 
@@ -101,11 +103,13 @@ bloc returns [String code]
 {
 $code = new String();
 }
-: '{' NEWLINE*
+: 
+'{' NEWLINE*
     (instruction  {$code += $instruction.code;})+
 '}'
 ;
 
+//if else
 si_sinon returns [String code]
 @init 
 {
@@ -114,11 +118,11 @@ si_sinon returns [String code]
     String label_else = newlabel(); //label_else permet d'aller aux instructions else
     String label_fin = newlabel(); //label_fin permet d'aller à la fin
 }
-: IF '(' bool ')' NEWLINE*
+: SI '(' bool ')' NEWLINE*
 (bloc {instruction_if += $bloc.code;}
 | instruction {instruction_if += $instruction.code;}
 )
-NEWLINE* ELSE NEWLINE*
+NEWLINE* SINON NEWLINE*
 (bloc {instruction_else += $bloc.code;}
 | instruction {instruction_else += $instruction.code;}
 | si {instruction_else += $si.code;}
@@ -135,13 +139,14 @@ NEWLINE* ELSE NEWLINE*
 }
 ;
 
+//if seulement
 si returns [String code]
 @init 
 {
     String instruction_if = new String();
     String label_fin = newlabel(); //label_fin permet d'aller à la fin
 }
-: IF '(' bool ')' NEWLINE*
+: SI '(' bool ')' NEWLINE*
 (bloc {instruction_if += $bloc.code;}
 | instruction {instruction_if += $instruction.code;}
 )
@@ -159,11 +164,11 @@ do_while returns [String code]
 {
     String instruction_do_while = new String();
 }
-: DO NEWLINE*
+: REPETER NEWLINE*
 (bloc {instruction_do_while += $bloc.code;}
 | instruction {instruction_do_while += $instruction.code;}
 )
-WHILE '(' bool ')'
+TANTQUE '(' bool ')'
 {
     String label_do_while = newlabel(); //nouvelle étiquette pour le do while
     $code = "LABEL " + label_do_while + "\n"; //on étiquète le début du do while
@@ -209,11 +214,10 @@ expr_arithmetique returns [String code]
  | a=bool 'and' b=bool {$code = $a.code + $b.code + "MUL" + '\n';} //a*b
  | a=bool 'or' b=bool
     {
-        //ou classsique (a + b >= 1)
         $code = $a.code + $b.code + "ADD" + "\n";
         $code += "PUSHI " + "1" + "\n";
         $code += "SUPEQ" + "\n";
-    }
+    } //(a + b >= 1)
 // ou exclusif
  | a=bool 'xor' b=bool
     {
@@ -227,7 +231,9 @@ expr_arithmetique returns [String code]
 
 
 // règles du lexer
-TYPE : 'int' | 'float' | 'bool'; // pour pouvoir gérer des entiers, Booléens et floats
+
+//pour pouvoir gérer des entiers, flottants et booléens
+TYPE : 'int' | 'float' | 'bool'; 
 
 //entier ne peut pas commencer par 0 sauf 0
 ENTIER : '0' | ('1'..'9')('0'..'9')*;
@@ -240,18 +246,18 @@ MUL_DIV : '*' {setText("MUL");}
 ;
 
 //condition
-IF : 'if' | 'si';
-ELSE : 'else' | 'sinon';
+SI : 'if' | 'si';
+SINON : 'else' | 'sinon';
 
 //boucle
-DO : 'do' | 'repeter';
-WHILE : 'while' | 'tantque';
+REPETER : 'do' | 'repeter';
+TANTQUE : 'while' | 'tantque';
 
 //affichage
-PRINT : 'print' | 'afficher';
+AFFICHER : 'print' | 'afficher';
 
 //lecture
-READ : 'read' | 'lire';
+LIRE : 'read' | 'lire';
 
 //commence obligatoirement par une lettre puis lettres ou chiffres ou underscore
 IDENTIFIANT : ('a' ..'z' | 'A' ..'Z') 
